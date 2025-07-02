@@ -11,3 +11,6 @@ app.include_router(user.router, prefix="/user", tags=["User"])
 @app.get("/")
 def root():
     return {"status": "🚀 BizIntel backend running!"}
+
+
+

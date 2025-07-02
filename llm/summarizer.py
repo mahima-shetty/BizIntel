@@ -1,18 +1,26 @@
+
+
+from langchain_groq import ChatGroq
+from langchain_core.prompts import PromptTemplate
+from langchain.chains import LLMChain
 import os
-from dotenv import load_dotenv
-from groq import Groq
 
-load_dotenv()
-
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-
-def summarize(text: str):
-    prompt = f"Summarize the following article in 3 bullet points:\n\n{text}"
-
-    response = client.chat.completions.create(
-        model="llama3-8b-8192",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.3
+def summarize_articles(articles: list[str]) -> str:
+    prompt = PromptTemplate(
+        input_variables=["text"],
+        template="""
+        You are a market news analyst. Summarize the following in 3 bullet points:
+        "{text}"
+        """,
     )
 
-    return response.choices[0].message.content.strip()
+    llm = ChatGroq(
+        api_key=os.getenv("GROQ_API_KEY"),  # Ensure this is set
+        model_name="llama3-70b-8192" 
+    )
+
+    chain = LLMChain(llm=llm, prompt=prompt)
+    joined_text = "\n\n".join(articles)
+
+    result = chain.run(joined_text)
+    return result

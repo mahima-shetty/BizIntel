@@ -29,3 +29,16 @@ def fetch_news(topic: str = "AI", count: int = 5):
         }
         for article in articles
     ]
+
+
+
+def get_news(topic: str):
+    api_key = "YOUR_NEWS_API_KEY"
+    url = f"https://newsapi.org/v2/everything?q={topic}&language=en&pageSize=5&apiKey={api_key}"
+    response = requests.get(url)
+    articles = response.json().get("articles", [])
+    
+    return [
+        {"title": a["title"], "description": a["description"], "url": a["url"]}
+        for a in articles
+    ]

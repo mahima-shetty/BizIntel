@@ -24,13 +24,18 @@ def get_news(topic: str = "AI", count: int = 5):
     return [
         {
             "title": article["title"],
+            "source": "NewsAPI",
             "description": article["description"],
             "url": article["url"]
         }
         for article in articles
     ]
 
-
+if __name__ == "__main__":
+    articles = get_news()
+    print("Fetched", len(articles))
+    for a in articles:
+        print(a["title"], "|", a["url"])
 
 # def get_news(topic: str):
 #     api_key = os.getenv("NEWS_API_KEY")

@@ -1,8 +1,6 @@
-
-
 from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
-from langchain.chains import LLMChain
+from langchain_core.runnables import RunnableSequence
 import os
 
 def summarize_articles(articles: list[str]) -> str:
@@ -15,12 +13,13 @@ def summarize_articles(articles: list[str]) -> str:
     )
 
     llm = ChatGroq(
-        api_key=os.getenv("GROQ_API_KEY"),  # Ensure this is set
-        model_name="llama3-70b-8192" 
+        api_key=os.getenv("GROQ_API_KEY"),
+        model_name="llama3-70b-8192"  # ✅ Make sure this model exists on Groq
     )
 
-    chain = LLMChain(llm=llm, prompt=prompt)
+    chain: RunnableSequence = prompt | llm
+
     joined_text = "\n\n".join(articles)
 
-    result = chain.run(joined_text)
-    return result
+    result = chain.invoke({"text": joined_text})
+    return result.content  # 🚨 .content gives actual string from response

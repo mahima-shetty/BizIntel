@@ -3,6 +3,9 @@ import plotly.express as px
 import pandas as pd
 from collections import Counter
 
+
+
+
 def display_charts(prefs, articles):
     if not articles:
         st.warning("No data available to display charts.")
@@ -15,6 +18,7 @@ def display_charts(prefs, articles):
         "Articles": list(source_counts.values())
     })
 
-    st.markdown("### 📊 Source Contribution")
+    # st.markdown("### 📊 Source Contribution")
+    st.markdown("### 📊 Article Source Breakdown", unsafe_allow_html=True)
     fig = px.pie(df, names='Source', values='Articles', title=f"Article Distribution by Source - {prefs['topic']}")
     st.plotly_chart(fig, use_container_width=True)

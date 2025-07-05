@@ -10,7 +10,28 @@ from components.charts import display_charts
 from app.agents.aggregator import aggregate_news
 
 
-# after user_prefs loaded
+# Global styles
+st.markdown("""
+    <style>
+    html, body, [class*="css"] {
+        font-family: 'Segoe UI', sans-serif;
+        box-sizing: border-box;
+        padding: 0;
+        margin: 0;
+    }
+    .stButton>button {
+        background-color: #2E86AB;
+        color: white;
+        border: None;
+        border-radius: 5px;
+        padding: 0.5rem 1rem;
+    }
+    .stButton>button:hover {
+        background-color: #1B4F72;
+        color: #fff;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 
 
@@ -24,8 +45,16 @@ user_prefs = load_sidebar()
 articles = aggregate_news(user_prefs["topic"], user_prefs["count"])
 
 # Title
-st.markdown("<h1 style='color:#2E86AB;'>🧠 BizIntel AI News Dashboard</h1>", unsafe_allow_html=True)
-st.markdown("Stay updated on the latest AI, Tech & Market news – curated by autonomous agents.")
+st.markdown("""
+    <h1 style='text-align: center; color: #2E86AB; font-size: 40px; font-family: "Segoe UI", sans-serif;'>
+        BizIntel : Autonomous Business Analyst Agent
+    </h1>
+    <p style='text-align: center; font-size: 18px; color: gray;'>
+        Stay updated on the latest AI, Tech & Market news – curated by autonomous agents.
+    </p>
+""", unsafe_allow_html=True)
+
+
 
 # Display insights
 display_insights(user_prefs, articles)

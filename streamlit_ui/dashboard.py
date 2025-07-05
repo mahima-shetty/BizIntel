@@ -42,7 +42,8 @@ user_prefs = load_sidebar()
 
 
 # Fetch articles once
-articles = aggregate_news(user_prefs["topic"], user_prefs["count"])
+articles = aggregate_news(user_prefs["topic"], user_prefs["count"], user_prefs["sources"])
+
 
 # Title
 st.markdown("""

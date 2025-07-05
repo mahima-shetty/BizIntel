@@ -6,70 +6,70 @@ from app.agents.scraper_reuters import scrape_reuters
 from app.agents.scraper_techcrunch import scrape_techcrunch_via_rss as scrape_techcrunch
 
 
-def aggregate_news(topic: str = "AI", count: int = 10):
+def aggregate_news(topic: str = "AI", count: int = 10, sources: list = None):
     combined = []
 
-    # Pull from different agents
-    newsapi_articles = []
-    cnbc_articles = []
-    techcrunch_articles = []
-    reuters_articles = []
+    # Normalize selected sources
+    selected_sources = set(sources or ["NewsAPI", "CNBC", "Reuters", "TechCrunch"])
 
-    try:
-        newsapi_articles = fetch_newsapi(topic, count)
-        combined.extend(newsapi_articles)
-    except Exception as e:
-        print(f"[NewsAPI Error]: {e}")
+    # Pull from different agents based on preferences
+    if "NewsAPI" in selected_sources:
+        try:
+            newsapi_articles = fetch_newsapi(topic, count)
+            combined.extend(newsapi_articles)
+        except Exception as e:
+            print(f"[NewsAPI Error]: {e}")
 
-    try:
-        cnbc_articles = fetch_cnbc_news(topic, count)
-        combined.extend(cnbc_articles)
-    except Exception as e:
-        print(f"[CNBC Error]: {e}")
+    if "CNBC" in selected_sources:
+        try:
+            cnbc_articles = fetch_cnbc_news(topic, count)
+            combined.extend(cnbc_articles)
+        except Exception as e:
+            print(f"[CNBC Error]: {e}")
 
-    try:
-        techcrunch_articles = scrape_techcrunch()
-        combined.extend(techcrunch_articles)
-    except Exception as e:
-        print(f"[TechCrunch Error]: {e}")
+    if "TechCrunch" in selected_sources:
+        try:
+            techcrunch_articles = scrape_techcrunch()
+            combined.extend(techcrunch_articles)
+        except Exception as e:
+            print(f"[TechCrunch Error]: {e}")
 
-    try:
-        reuters_articles = scrape_reuters()
-        combined.extend(reuters_articles)
-    except Exception as e:
-        print(f"[Reuters Error]: {e}")
+    if "Reuters" in selected_sources:
+        try:
+            reuters_articles = scrape_reuters()
+            combined.extend(reuters_articles)
+        except Exception as e:
+            print(f"[Reuters Error]: {e}")
 
-    # Source summary logging
-    print(f"[SUMMARY] NewsAPI: {len(newsapi_articles)} | CNBC: {len(cnbc_articles)} | Reuters: {len(reuters_articles)} | TechCrunch: {len(techcrunch_articles)}")
-
-    # Fix missing source warnings
+    # Fix missing source field
     for a in combined:
         if "source" not in a or not a["source"]:
-            print("[WARN] Missing source for article:", a.get("title", "Untitled"), "URL:", a.get("url"))
-
-    # Deduplicate by URL
+            print("[WARN] Missing source for article:", a.get("title", "Untitled"))
+    
+    # Deduplicate
     seen = set()
     deduped = []
     for article in combined:
         url = article.get("url")
         if url and url not in seen:
-            # Ensure 'published_at' key exists
             if "published_at" not in article:
                 article["published_at"] = datetime.utcnow().isoformat()
             deduped.append(article)
             seen.add(url)
 
-    # Fair sampling from each source
+    # Bucket by source
+    from collections import defaultdict
     source_buckets = defaultdict(list)
     for article in deduped:
         source = article.get("source", "Unknown")
         source_buckets[source].append(article)
 
+    # Sample fairly
     balanced = []
     for group in source_buckets.values():
-        balanced.extend(group[:3])  # take top 3 from each source
+        balanced.extend(group[:3])
 
-    # Sort all selected articles by recency
+    # Sort by recent
     balanced = sorted(balanced, key=lambda x: x.get("published_at", ""), reverse=True)
 
     return balanced[:count]

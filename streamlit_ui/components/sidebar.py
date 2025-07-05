@@ -7,8 +7,15 @@ def load_sidebar():
 
     topic = st.sidebar.selectbox("Select Topic", ["AI", "Finance", "Technology", "Startups"])
     count = st.sidebar.slider("Number of Articles", 5, 20, 10)
+    sources = st.sidebar.multiselect(
+        "Preferred News Sources",
+        ["TechCrunch", "Reuters", "CNBC", "NewsAPI"],
+        default=["TechCrunch", "Reuters"]
+    )
 
     st.sidebar.markdown("---")
     st.sidebar.markdown("Crafted with 💙 for GenAI enthusiasts.")
-    return {"topic": topic, "count": count}
+    return {"topic": topic, "count": count, "sources" : sources}
 
+
+    

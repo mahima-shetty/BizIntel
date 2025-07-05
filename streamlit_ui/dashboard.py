@@ -10,11 +10,15 @@ from components.charts import display_charts
 from app.agents.aggregator import aggregate_news
 
 
+# after user_prefs loaded
+
+
 
 st.set_page_config(page_title="BizIntel Dashboard", layout="wide")
 
 # Sidebar
 user_prefs = load_sidebar()
+
 
 # Fetch articles once
 articles = aggregate_news(user_prefs["topic"], user_prefs["count"])

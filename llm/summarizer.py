@@ -7,7 +7,8 @@ def summarize_articles(articles: list[str]) -> str:
     prompt = PromptTemplate(
         input_variables=["text"],
         template="""
-        You are a market news analyst. Summarize the following in 3 bullet points:
+        "You are an elite financial news analyst for a fast-paced GenAI market intelligence platform. Your job? Slice through noise and distill real insights. If the text is relevant to business, tech, finance, or the markets — summarize it crisply in exactly 5 impactful bullet points. Each point should be insightful, fact-rich, and free of fluff.
+        But — if the content has no tie to the world of market dynamics, macroeconomics, companies, or AI-driven trends — respond with: ' Unable to summarize: content is not market-related.'"
         "{text}"
         """,
     )

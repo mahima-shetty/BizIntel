@@ -10,6 +10,7 @@ from app.agents.aggregator import aggregate_news
 from app.agents.summarization_agent import summarize_articles
 from app.agents.funding_agent import fetch_funding_news
 from utils.founder_prefs import load_founder_prefs, save_founder_prefs
+from streamlit_ui.components.sidebar import render_sidebar
 
 
 TRAILING_JUNK = ["TechCrunch", "Reuters", "CNBC", "NewsAPI"]
@@ -125,8 +126,9 @@ def show_preferences_form(prefs):
     if not isinstance(funding_count, int) or not (1 <= funding_count <= 10):
         funding_count = 5
 
+    st.markdown("---")
     
-    st.markdown("##Update Preferences: ")
+    st.markdown("## Update Preferences: ")
     with st.form("update_prefs_form"):
         topic = st.selectbox("📌 Topic", topic_options, index=topic_options.index(topic))
         count = st.slider("📰 Article Count", 1, 10, count)
@@ -159,7 +161,7 @@ def show_founder_dashboard():
         st.stop()
 
     prefs = load_user_preferences(user_email)
-
+    render_sidebar("startup founder", prefs)
     # Show Sections
     show_news_section(prefs["topic"], prefs["count"], prefs["sources"])
     show_funding_section(prefs["funding_count"])
@@ -168,3 +170,8 @@ def show_founder_dashboard():
         save_founder_prefs(user_email, updated_prefs)
         st.success("✅ Preferences saved. Refreshing...")
         st.rerun()
+
+
+# At bottom of founder_dashboard.py
+if __name__ == "__main__" or __name__ == "__streamlit__":
+    show_founder_dashboard()

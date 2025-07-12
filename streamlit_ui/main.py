@@ -1,6 +1,7 @@
 import streamlit as st
 from components.auth_handler import handle_auth, get_current_user_data
 from components.sidebar import render_sidebar
+from streamlit_extras.switch_page_button import switch_page  # if you use external lib
 
 st.set_page_config(page_title="BizIntel", layout="wide")
 
@@ -37,12 +38,28 @@ from pages.founder_dashboard import show_founder_dashboard
 st.info(f"Role (raw): {user_data.get('role')}")
 st.info(f"Role (normalized): {role}")
 
-st.markdown("Use the sidebar to navigate your personalized dashboard.")
+# st.markdown("Use the sidebar to navigate your personalized dashboard.")
+# if role == "startup founder":
+#     show_founder_dashboard()
+# elif role == "analyst":
+#     st.info("🧠 Analyst Dashboard coming soon.")
+# elif role == "researcher":
+#     st.info("🔬 Researcher Dashboard coming soon.")
+# else:
+#     st.warning("❓ Unknown role. Please contact support.")
+
+
+
+# ✅ Optional: Debug info (remove in production)
+st.caption("🔐 Debug Info:")
+st.json(user_data)
+
+
 if role == "startup founder":
-    show_founder_dashboard()
+    st.switch_page("pages/founder_dashboard.py")
 elif role == "analyst":
-    st.info("🧠 Analyst Dashboard coming soon.")
+    st.switch_page("pages/analyst_dashboard.py")
 elif role == "researcher":
-    st.info("🔬 Researcher Dashboard coming soon.")
+    st.switch_page("pages/researcher_dashboard.py")
 else:
-    st.warning("❓ Unknown role. Please contact support.")
+    st.warning("❓ Unrecognized role.")

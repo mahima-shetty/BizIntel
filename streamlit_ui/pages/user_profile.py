@@ -5,13 +5,29 @@ import sqlite3
 import time
 from components.auth_guard import require_login
 from components.auth_ui import show_auth_ui
+from components.auth_handler import handle_auth, get_current_user_data
 
+from streamlit_ui.components.sidebar import render_sidebar
 
 # ✅ Protect page
 require_login()
 
 # ✅ Sidebar login/logout
 show_auth_ui()
+
+
+token = st.session_state.get("token")
+# if not token:
+#     st.warning("Please login.")
+#     st.stop()
+
+user_data = get_current_user_data(token)
+st.markdown(user_data)
+
+
+role = user_data.get("role", "guest").lower()
+prefs = user_data.get("preferences", {})
+
 
 
 # ✅ Session vars
@@ -31,6 +47,8 @@ try:
 except Exception as e:
     st.warning(f"⚠️ Could not fetch role from DB: {e}")
     current_role = "Analyst"
+
+render_sidebar(role, prefs)
 
 
 # ✅ Show current info

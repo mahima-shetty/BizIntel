@@ -20,5 +20,5 @@ def render_sidebar(role, prefs):
         st.sidebar.warning("❓ Unknown role. Defaulting to Analyst.")
         st.sidebar.page_link("pages/analyst_dashboard.py", label="📊 Analyst Dashboard")
 
-    st.sidebar.page_link("pages/user_profile.py", label="👤 Profile / Preferences")
+    st.sidebar.page_link("pages/user_profile.py", label="👤 Profile / Preferences / Log Out")
     st.sidebar.markdown("---")

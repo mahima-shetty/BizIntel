@@ -37,14 +37,15 @@ def create_tables():
     # 📊 Analyst preferences
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS analyst_preferences (
-        email TEXT PRIMARY KEY,
-        sector TEXT,
-        topic TEXT,
-        region TEXT,
-        count INTEGER,
-        sources TEXT,
-        notification_frequency TEXT,
-        FOREIGN KEY(email) REFERENCES users(email)
+    email TEXT PRIMARY KEY,
+    sector TEXT,
+    topic TEXT,
+    region TEXT,
+    count INTEGER,
+    tickers TEXT,  
+    sources TEXT,
+    notification_frequency TEXT,
+    FOREIGN KEY(email) REFERENCES users(email)
     );
     """)
 

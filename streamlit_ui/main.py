@@ -25,7 +25,24 @@ prefs = user_data.get("preferences", {})
 # Step 3: Render the sidebar
 render_sidebar(role, prefs)
 
-# Step 4: Main content (optional home view)
-st.title("🏠 Welcome to BizIntel")
-st.markdown(f"Hello **{user_data.get('username', 'user')}** 👋")
+# # Step 4: Main content (optional home view)
+# st.title("🏠 Welcome to BizIntel")
+# st.markdown(f"Hello **{user_data.get('username', 'user')}** 👋")
+# st.markdown("Use the sidebar to navigate your personalized dashboard.")
+
+# Step 4: Route to role-specific dashboard
+from pages.founder_dashboard import show_founder_dashboard
+# You can import others later: analyst, researcher
+
+st.info(f"Role (raw): {user_data.get('role')}")
+st.info(f"Role (normalized): {role}")
+
 st.markdown("Use the sidebar to navigate your personalized dashboard.")
+if role == "startup founder":
+    show_founder_dashboard()
+elif role == "analyst":
+    st.info("🧠 Analyst Dashboard coming soon.")
+elif role == "researcher":
+    st.info("🔬 Researcher Dashboard coming soon.")
+else:
+    st.warning("❓ Unknown role. Please contact support.")

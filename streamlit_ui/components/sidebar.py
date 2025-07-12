@@ -9,7 +9,7 @@ def render_sidebar(role, prefs):
     
 
     # Role-based navigation links
-    if role == "founder":
+    if role == "startup founder":
         st.sidebar.page_link("pages/founder_dashboard.py", label="Founder Dashboard")
     elif role == "analyst":
         st.sidebar.page_link("pages/analyst_dashboard.py", label="Analyst Dashboard")

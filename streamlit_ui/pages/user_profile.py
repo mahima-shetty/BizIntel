@@ -13,10 +13,25 @@ require_login()
 # ✅ Sidebar login/logout
 show_auth_ui()
 
+
 # ✅ Session vars
 email = st.session_state["user_email"]
 name = st.session_state["user_name"]
-current_role = st.session_state["user_role"]
+
+# 🔄 Fetch current role from DB
+try:
+    conn = sqlite3.connect("streamlit_ui/db/prefs.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT user_type FROM users WHERE email = ?", (email,))
+    row = cursor.fetchone()
+    conn.close()
+    current_role = row[0] if row else "Analyst"
+    st.session_state["user_role"] = current_role  # ✅ from DB
+    st.markdown(f"1st call from db role: {current_role}") #should be removed
+except Exception as e:
+    st.warning(f"⚠️ Could not fetch role from DB: {e}")
+    current_role = "Analyst"
+
 
 # ✅ Show current info
 st.title("👤 User Profile")
@@ -47,15 +62,30 @@ if new_role != current_role:
 
             # Update session and rerun
             st.session_state["user_role"] = new_role
+            st.markdown(f"2nd call from db role: {new_role}") #should be removed
 
-            if new_role == "Startup Founder":
-                st.switch_page("pages/founder_dashboard.py")
-            elif new_role == "Analyst":
-                st.switch_page("pages/analyst_dashboard.py")
-            elif new_role == "Researcher":
-                st.switch_page("pages/researcher_dashboard.py")
-            else:
-                st.warning("Unrecognized role, staying on profile page.")
+            import requests
+
+            
+            try:
+                response = requests.post("http://localhost:8000/refresh-token", json={
+                    "email": email,
+                    "role": new_role,
+                    "username": name
+                })
+
+                if response.status_code == 200:
+                    new_token = response.json()["token"]
+                    st.session_state["token"] = new_token
+                    st.success("✅ Role updated and token refreshed.")
+                    time.sleep(1)
+                    st.rerun()
+                else:
+                    st.error("❌ Role updated but failed to refresh JWT token.")
+
+            except Exception as e:
+                st.error(f"❌ Role updated but failed to refresh token: {e}")
+
 
         except Exception as e:
             st.error(f"❌ Failed to update role: {e}")

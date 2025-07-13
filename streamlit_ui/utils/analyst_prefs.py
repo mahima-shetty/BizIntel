@@ -12,7 +12,7 @@ def load_analyst_prefs(email):
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT sector, topic, region, count, sources, notification_frequency
+            SELECT sector, topic, region, count, tickers, sources, notification_frequency
             FROM analyst_preferences WHERE email = ?;
         """, (email,))
         row = cursor.fetchone()
@@ -26,8 +26,9 @@ def load_analyst_prefs(email):
             "topic": row[1],
             "region": row[2],
             "count": row[3],
-            "sources": row[4].split(",") if row[4] else [],
-            "notification_frequency": row[5]
+            "tickers": row[4].split(",") if row[4] else [],
+            "sources": row[5].split(",") if row[5] else [],
+            "notification_frequency": row[6]
         }
     except Exception as e:
         print(f"[ERROR] Failed to load analyst prefs: {e}")
@@ -47,6 +48,7 @@ def save_analyst_prefs(email, prefs_dict):
                 topic TEXT,
                 region TEXT,
                 count INTEGER,
+                tickers TEXT,
                 sources TEXT,
                 notification_frequency TEXT,
                 FOREIGN KEY(email) REFERENCES users(email)
@@ -54,13 +56,15 @@ def save_analyst_prefs(email, prefs_dict):
         """)
 
         cursor.execute("""
-            INSERT INTO analyst_preferences (email, sector, topic, region, count, sources, notification_frequency)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO analyst_preferences (
+                email, sector, topic, region, count, tickers, sources, notification_frequency
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(email) DO UPDATE SET
                 sector = excluded.sector,
                 topic = excluded.topic,
                 region = excluded.region,
                 count = excluded.count,
+                tickers = excluded.tickers,
                 sources = excluded.sources,
                 notification_frequency = excluded.notification_frequency;
         """, (
@@ -69,9 +73,11 @@ def save_analyst_prefs(email, prefs_dict):
             prefs_dict.get("topic", ""),
             prefs_dict.get("region", ""),
             int(prefs_dict.get("count", 5)),
+            ",".join(prefs_dict.get("tickers", [])),  
             ",".join(prefs_dict.get("sources", [])),
             prefs_dict.get("notification_frequency", "Weekly")
         ))
+
 
         conn.commit()
         conn.close()

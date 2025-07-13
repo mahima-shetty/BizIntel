@@ -5,15 +5,18 @@ from app.agents.news_agent import get_news as fetch_newsapi
 from app.agents.cnbc_agent import fetch_cnbc_news
 from app.agents.scraper_reuters import scrape_reuters
 from app.agents.scraper_techcrunch import scrape_techcrunch_via_rss as scrape_techcrunch
+from app.agents.finnhub_agent import fetch_finnhub_news  # ✅ make sure this exists
+
+from dateutil.parser import parse as parse_date  # Add this import at the top
+from datetime import timezone
 
 
-def aggregate_news(topic: str = "AI", count: int = 10, sources: list = None):
+
+def aggregate_analyst(topic: str = "AI", count: int = 10, sources: list = None):
     combined = []
+    
+    selected_sources = set(sources or ["NewsAPI", "CNBC", "Reuters", "TechCrunch", "Finnhub"])
 
-    # Normalize selected sources
-    selected_sources = set(sources or ["NewsAPI", "CNBC", "Reuters", "TechCrunch"])
-
-    # Pull from different agents based on preferences
     if "NewsAPI" in selected_sources:
         try:
             newsapi_articles = fetch_newsapi(topic, count)
@@ -42,12 +45,17 @@ def aggregate_news(topic: str = "AI", count: int = 10, sources: list = None):
         except Exception as e:
             print(f"[Reuters Error]: {e}")
 
-    # Fix missing source field
+    if "Finnhub" in selected_sources:
+        try:
+            finnhub_articles = fetch_finnhub_news(topic=topic, count=count)
+            combined.extend(finnhub_articles)
+        except Exception as e:
+            print(f"[Finnhub Error]: {e}")
+
     for a in combined:
         if "source" not in a or not a["source"]:
             print("[WARN] Missing source for article:", a.get("title", "Untitled"))
-    
-    # Deduplicate
+
     seen = set()
     deduped = []
     for article in combined:
@@ -58,19 +66,23 @@ def aggregate_news(topic: str = "AI", count: int = 10, sources: list = None):
             deduped.append(article)
             seen.add(url)
 
-    # Bucket by source
-    from collections import defaultdict
     source_buckets = defaultdict(list)
     for article in deduped:
         source = article.get("source", "Unknown")
         source_buckets[source].append(article)
 
-    # Sample fairly
     balanced = []
     for group in source_buckets.values():
         balanced.extend(group[:3])
 
-    # Sort by recent
-    balanced = sorted(balanced, key=lambda x: x.get("published_at", ""), reverse=True)
+    def safe_parse_date(article):
+        try:
+            dt = parse_date(article.get("published_at", ""))
+            return dt.replace(tzinfo=None)  # ⬅️ strip timezone
+        except Exception:
+            return datetime.min   # fallback to oldest possible date
+
+    balanced = sorted(balanced, key=safe_parse_date, reverse=True)
+
 
     return balanced[:count]

@@ -11,6 +11,8 @@ from app.agents.yfinance_agent import get_stock_data, get_kpi_summary, plot_stoc
 from app.agents.llm_explainer import generate_trend_summary
 from app.agents.aggregator_analyst import aggregate_analyst
 from app.agents.summarization_agent import summarize_articles
+from app.agents.insight_explorer import generate_insight_summary
+from streamlit_ui.utils.history import save_kpi_snapshot, save_news_article
 
 
 # ─────────────────────────────────────────────
@@ -84,6 +86,11 @@ def show_kpi_tracking_section(prefs, user_email):
             kpi_data = get_kpi_summary(ticker)
             for k, v in kpi_data.items():
                 st.markdown(f"**{k}:** {v}")
+        # Save KPI snapshot
+        try:
+            save_kpi_snapshot(user_email, ticker, kpi_data)
+        except Exception as e:
+            st.warning(f"⚠️ Could not save KPI snapshot for {ticker}: {e}")
 
         st.markdown("---")
 
@@ -120,7 +127,7 @@ def show_trend_detection_section(prefs):
 
 # ─────────────────────────────────────────────
 # 🛠 Custom Data Builder
-def show_custom_data_builder_section(prefs):
+def show_custom_data_builder_section(prefs,user_email):
     st.subheader("🛠 Custom Data Source Builder")
 
     topic = prefs.get("topic", "AI")
@@ -135,6 +142,15 @@ def show_custom_data_builder_section(prefs):
         )
 
     articles = st.session_state.get("custom_articles", [])
+    
+    
+    # Save each article to history
+    try:
+        for article in articles:
+            save_news_article(user_email, article)
+    except Exception as e:
+        st.warning(f"⚠️ Could not save news articles: {e}")
+    
     if not articles:
         st.info("No articles fetched yet.")
         return
@@ -203,6 +219,40 @@ def show_analyst_preferences_form(prefs):
             }
     return None
 
+# ─────────────────────────────────────────────
+# 🔍 Section 5: Insight Explorer (LLM + Queryable)
+def show_insight_explorer_section(prefs, user_email):
+    st.subheader("🔍 Insight Explorer")
+
+    # Predefined questions
+    st.markdown("#### 🧠 Try one of these:")
+    questions = [
+        "📈 What happened to my tracked stocks this week?",
+        "📉 Were there any major KPI changes in the last 7 days?",
+        "📰 What are the most discussed topics in the news I read?",
+        "🤖 Summarize insights from my KPIs and news together"
+    ]
+
+    for i, q in enumerate(questions):
+        if st.button(q, key=f"qbtn_{i}"):
+            with st.spinner("Generating insights..."):
+                response = generate_insight_summary(q, prefs, user_email)
+                st.success(response)
+
+    st.markdown("---")
+
+    # Freeform query
+    st.markdown("#### 💬 Ask your own question:")
+    user_query = st.text_area("Type your question about KPIs or news...", height=100)
+
+    if st.button("🔍 Analyze My Data"):
+        if user_query.strip():
+            with st.spinner("Thinking..."):
+                response = generate_insight_summary(user_query, prefs, user_email)
+                st.success(response)
+        else:
+            st.warning("Please enter a valid question.")
+
 
 
 # ─────────────────────────────────────────────
@@ -222,7 +272,11 @@ def show_analyst_dashboard():
     
     show_trend_detection_section(prefs)
     st.markdown("---")
-    show_custom_data_builder_section(prefs)
+    show_custom_data_builder_section(prefs, user_email)
+    
+    st.markdown("---")
+    show_insight_explorer_section(prefs,user_email)
+    st.markdown("---")
 
     updated_prefs = show_analyst_preferences_form(prefs)
     if updated_prefs:

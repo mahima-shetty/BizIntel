@@ -1,15 +1,25 @@
 # app/agents/llm_explainer.py
 
+import os
 from llama_index.llms.langchain import LangChainLLM
 from langchain_groq import ChatGroq
 from langchain.prompts import PromptTemplate
-import os
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnableSequence
 
+
+# ✅ Create reusable, wrapped LLM for custom summaries
 groq_llm = ChatGroq(
     api_key=os.getenv("GROQ_API_KEY"),
-    model_name="llama3-70b-8192"
+    model_name="llama3-70b-8192",
+    temperature=0  # 🔒 Set to 0 to prevent hallucinations
 )
 wrapped_llm = LangChainLLM(llm=groq_llm)
+
+
+# ==========================
+# 🔍 Trend Summary Generator
+# ==========================
 
 trend_prompt = PromptTemplate(
     input_variables=["ticker", "summary"],
@@ -19,15 +29,90 @@ You're a financial analyst. The stock {ticker} had significant movements recentl
 {summary}
 
 Analyze the volatility and suggest possible reasons or patterns that could explain these movements.
-Provide a concise summary (3-5 sentences).
+Provide a concise summary (3-5 sentences). Avoid assumptions not in the data.
 """
 )
 
 def generate_trend_summary(ticker: str, df_alerts):
     alert_summary = df_alerts[["Date", "Close", "% Change"]].to_string(index=False)
     prompt_text = trend_prompt.format(ticker=ticker, summary=alert_summary)
-
-    # ✅ Use `.complete()` for raw strings with LlamaIndex-wrapped LangChain LLMs
     response = wrapped_llm.complete(prompt_text)
     return response.text.strip()
 
+
+# ==========================
+# 🧠 KPI + News Insight Engine
+# ==========================
+
+def summarize_kpi_and_news(prompt_text_dict: dict) -> str:
+    """
+    Accepts a dict with:
+        - question
+        - kpi_data (string)
+        - news_data (string)
+    """
+    system_template = """
+You are a financial analyst assistant. Given stock KPI changes and news,
+provide a concise, insightful summary that answers the user's question
+in a professional and clear tone.
+"""
+
+    prompt = PromptTemplate.from_template("""
+{system_instructions}
+
+--- USER QUESTION ---
+{question}
+
+--- KPI DATA ---
+{kpi_data}
+
+--- NEWS DATA ---
+{news_data}
+
+Return your answer in bullet points where appropriate.
+""")
+
+    chain: RunnableSequence = (
+        prompt
+        | ChatGroq(model="llama3-70b-8192", temperature=0)
+        | StrOutputParser()
+    )
+
+    return chain.invoke({
+        "system_instructions": system_template.strip(),
+        "question": prompt_text_dict.get("question", ""),
+        "kpi_data": prompt_text_dict.get("kpi_data", ""),
+        "news_data": prompt_text_dict.get("news_data", "")
+    })
+
+# 🧠 Prompt formatting utility
+def format_insight_prompt(question: str, kpi_dict: dict, news_list: list) -> str:
+    # Convert KPI dict to readable string
+    kpi_lines = []
+    for ticker, daily_data in kpi_dict.items():
+        kpi_lines.append(f"Ticker: {ticker}")
+        for date, kpi in daily_data.items():
+            kpi_lines.append(f"Date: {date}")
+            for key, val in kpi.items():
+                kpi_lines.append(f"- {key}: {val}")
+            kpi_lines.append("")  # newline between entries
+    kpi_str = "\n".join(kpi_lines)
+
+    # Convert News list to readable string
+    news_lines = []
+    for article in news_list:
+        title = article.get("title", "")
+        source = article.get("source", "")
+        date = article.get("date", "")
+        news_lines.append(f"- {title} ({source}, {date})")
+    news_str = "\n".join(news_lines)
+
+    return f"""
+User question: {question}
+
+--- KPI DATA ---
+{kpi_str}
+
+--- NEWS DATA ---
+{news_str}
+""".strip()

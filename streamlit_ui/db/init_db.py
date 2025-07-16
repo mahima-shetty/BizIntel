@@ -60,6 +60,31 @@ def create_tables():
         FOREIGN KEY(email) REFERENCES users(email)
     );
     """)
+    
+    
+    # Table for KPI History
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS kpi_history (
+            email TEXT,
+            ticker TEXT,
+            date TEXT,
+            kpi_key TEXT,
+            kpi_value TEXT
+        )
+    """)
+
+    # Table for News History
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS news_history (
+            email TEXT,
+            title TEXT,
+            content TEXT,
+            source TEXT,
+            url TEXT,
+            date TEXT
+        )
+    """)
+
 
     conn.commit()
     conn.close()

@@ -49,15 +49,15 @@ def create_tables():
     );
     """)
 
+    
     # 🔬 Researcher preferences
+    # cursor.execute("DROP TABLE IF EXISTS researcher_preferences;")
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS researcher_preferences (
-        email TEXT PRIMARY KEY,
-        topic TEXT,
-        keywords TEXT,
-        time_range TEXT,
-        sources TEXT,
-        FOREIGN KEY(email) REFERENCES users(email)
+    email TEXT PRIMARY KEY,
+    ticker TEXT,
+    depth TEXT,
+    FOREIGN KEY(email) REFERENCES users(email)
     );
     """)
     

@@ -13,6 +13,7 @@ from app.agents.aggregator_analyst import aggregate_analyst
 from app.agents.summarization_agent import summarize_articles
 from app.agents.insight_explorer import generate_insight_summary
 from streamlit_ui.utils.history import save_kpi_snapshot, save_news_article
+from streamlit_ui.utils.history import load_kpi_history, load_news_history
 
 
 # ─────────────────────────────────────────────
@@ -254,6 +255,53 @@ def show_insight_explorer_section(prefs, user_email):
             st.warning("Please enter a valid question.")
 
 
+from utils.anomaly import detect_anomalies_for_ticker
+import streamlit as st
+
+
+
+mock_kpi_history = {
+    "AAPL": {
+        "2025-07-10": {"Market Cap": 3_000_000_000_000, "PE Ratio": 28.5, "EPS": 6.10, "Dividend Yield": 0.52},
+        "2025-07-11": {"Market Cap": 3_100_000_000_000, "PE Ratio": 30.1, "EPS": 6.30, "Dividend Yield": 0.51},
+        "2025-07-12": {"Market Cap": 3_050_000_000_000, "PE Ratio": 29.8, "EPS": 6.25, "Dividend Yield": 0.50},
+        "2025-07-13": {"Market Cap": 3_900_000_000_000, "PE Ratio": 90.0,  "EPS": 12.00, "Dividend Yield": 1.20},
+        "2025-07-14": {"Market Cap": 3_080_000_000_000, "PE Ratio": 29.5, "EPS": 6.20, "Dividend Yield": 0.49},
+    }
+}
+
+
+import json
+
+def show_anomaly_section(kpi_history):
+    st.markdown("🔍 **Anomaly Detection**")
+    
+    
+    USE_MOCK_DATA = False
+    if USE_MOCK_DATA:
+        kpi_history = mock_kpi_history
+        
+    anomalies = detect_anomalies_for_ticker(kpi_history)
+    
+    # st.write("📊 Raw Anomalies Dict:")
+    # st.json(anomalies)
+
+    
+    
+    # st.code(json.dumps(anomalies, indent=2), language="json")
+
+
+    if not anomalies:
+        st.success("✅ No anomalies detected in KPI metrics.")
+    else:
+        for ticker, anomaly_data in anomalies.items():
+            st.subheader(f"📈 {ticker} Anomalies")
+            for metric, records in anomaly_data.items():
+                st.markdown(f"**{metric}**")
+                for r in records:
+                    st.markdown(f"- {r['Date']}: {metric} = `{r[metric]}`")
+
+
 
 # ─────────────────────────────────────────────
 # 🚀 Entry Point
@@ -277,12 +325,18 @@ def show_analyst_dashboard():
     st.markdown("---")
     show_insight_explorer_section(prefs,user_email)
     st.markdown("---")
+    # ✅ FIX: Load KPI history here
+    tickers = prefs.get("tickers", ["AAPL", "MSFT"])
+    kpi_history = load_kpi_history(user_email, tickers, days=7)
+    show_anomaly_section(kpi_history)
+    
 
     updated_prefs = show_analyst_preferences_form(prefs)
     if updated_prefs:
         save_analyst_prefs(user_email, updated_prefs)
         st.success("✅ Preferences saved. Refreshing...")
         st.rerun()
+
 
 
 if __name__ == "__main__" or __name__ == "__streamlit__":

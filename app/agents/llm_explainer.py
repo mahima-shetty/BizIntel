@@ -6,6 +6,8 @@ from langchain_groq import ChatGroq
 from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnableSequence
+from dotenv import load_dotenv
+load_dotenv(override=True)
 
 
 # ✅ Create reusable, wrapped LLM for custom summaries
@@ -116,3 +118,41 @@ User question: {question}
 --- NEWS DATA ---
 {news_str}
 """.strip()
+
+
+
+company_deep_dive_prompt = PromptTemplate(
+    input_variables=["ticker", "business_model", "strategy"],
+        template="""
+    You are a financial analyst assistant.
+
+    Here's information extracted from the company's latest 10-K filing:
+
+    📌 Ticker: {ticker}
+
+    🏢 Business Overview:
+    {business_model}
+
+    📈 Strategy & Management Discussion:
+    {strategy}
+
+    Write a clear, professional 5-sentence summary explaining:
+    - The company's core business
+    - Strategic priorities
+    - Any recent changes or positioning insights
+    Avoid fluff or speculation beyond this data.
+    """
+    )
+
+def generate_company_summary(ticker: str, edgar_data: dict) -> str:
+    if not edgar_data:
+        return "EDGAR data not available for summarization."
+
+    filled_prompt = company_deep_dive_prompt.format(
+        ticker=ticker,
+        business_model=edgar_data.get("business_model", "Not available."),
+        strategy=edgar_data.get("strategy", "Not available.")
+    )
+
+    response = wrapped_llm.complete(filled_prompt)
+    return response.text.strip()

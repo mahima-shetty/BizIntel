@@ -14,12 +14,12 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"
 # Use one of the import methods for decode_jwt_token()
 from app.core.jwt_utils import decode_jwt_token
 
-load_dotenv()
+load_dotenv(override=True)
 JWT_SECRET = os.getenv("JWT_SECRET_KEY", "TwoZeroTwoFive")
 DB_PATH = "streamlit_ui/db/prefs.db"
 
 
-load_dotenv()
+load_dotenv(override=True)
 API_BASE_URL = os.getenv("FASTAPI_URL", "http://localhost:8000")
 
 def get_current_user_data(token: str) -> dict:

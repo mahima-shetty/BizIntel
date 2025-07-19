@@ -4,7 +4,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 from datetime import datetime
 
-load_dotenv()
+load_dotenv(override=True)
 FINNHUB_API_KEY = os.getenv("FINNHUB_API_KEY")  # Make sure it's set in .env
 
 def fetch_finnhub_news(topic: str = "", count: int = 10):

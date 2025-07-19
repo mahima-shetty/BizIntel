@@ -2,6 +2,8 @@ from llama_index.core import Document, SummaryIndex
 from llama_index.llms.langchain import LangChainLLM
 from langchain_groq import ChatGroq
 import os
+from dotenv import load_dotenv
+
 
 def summarize_articles(articles):
     if not articles:
@@ -10,6 +12,7 @@ def summarize_articles(articles):
     # Convert articles to LlamaIndex documents
     docs = [Document(text=a.get("content", a.get("title", ""))) for a in articles if a.get("content") or a.get("title")]
 
+    load_dotenv(override=True)
     # Wrap Groq LLaMA3-70B inside LangChainLLM
     groq_llm = ChatGroq(
         api_key=os.getenv("GROQ_API_KEY"),

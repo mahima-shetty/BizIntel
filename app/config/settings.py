@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from authlib.integrations.starlette_client import OAuth
 from starlette.config import Config
 
-load_dotenv()
+load_dotenv(override=True)
 
 # JWT secret
 JWT_SECRET = os.getenv("JWT_SECRET_KEY", "TwoZeroTwoFive")

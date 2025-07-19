@@ -3,6 +3,7 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+sec-edgar-filings/
 # C extensions
 *.so
 

@@ -4,6 +4,9 @@ import os
 import yfinance as yf
 import pandas as pd
 import finnhub
+from langchain_groq import ChatGroq
+from langchain.prompts import PromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 
 # Setup Finnhub client
 finnhub_client = finnhub.Client(api_key=os.getenv("FINNHUB_API_KEY"))
@@ -17,6 +20,22 @@ METRICS = {
     "Net Income (TTM)": lambda info: info.get("netIncomeToCommon") or info.get("netIncome"),
     "Return on Equity": lambda info: info.get("returnOnEquity"),
 }
+
+
+
+llm = ChatGroq(
+    api_key=os.getenv("GROQ_API_KEY"),
+    model_name="llama3-70b-8192",
+    temperature=0
+)
+
+peer_summary_prompt = PromptTemplate.from_template("""
+You are a financial analyst assistant. Here is a table comparing financial metrics of a company and its peers:
+
+{table}
+
+Write a brief, plain-English summary of how the main company ({ticker}) compares to its peers. Focus on areas of strength and weakness. Avoid speculation. Make it suitable for a business intelligence dashboard.
+""")
 
 
 def _format_value(val):
@@ -94,3 +113,66 @@ def get_formatted_peer_df(df: pd.DataFrame) -> pd.DataFrame:
         )
 
     return fmt_df
+
+
+    
+def generate_peer_comparison_insight(ticker: str, df: pd.DataFrame) -> str:
+    import os
+    from langchain_groq import ChatGroq
+    from langchain_core.output_parsers import StrOutputParser
+
+    if not isinstance(df, pd.DataFrame) or df.empty:
+        print("[DEBUG] Peer DataFrame is empty or invalid.")
+        return "⚠️ No valid peer data available for analysis."
+
+    try:
+        company_name = df.loc[df["Ticker"] == ticker.upper(), "Short Name"].values[0]
+    except IndexError:
+        company_name = ticker.upper()
+    print(f"[DEBUG] Generating insight for: {company_name} ({ticker})")
+
+    summary = f"## Peer Comparison Data for {company_name} ({ticker.upper()})\n\n"
+    try:
+        summary += df.to_markdown(index=False)
+    except Exception as e:
+        print(f"[ERROR] Markdown formatting failed: {e}")
+        return f"⚠️ Failed to format peer data for LLM: {e}"
+
+    prompt = f"""
+You are a financial analyst. Based on the peer comparison table below, write a short paragraph summarizing how {company_name} compares to its competitors.
+
+Focus on whether it outperforms or underperforms in key areas like:
+- Valuation (P/E)
+- Profitability (Return on Equity)
+- Revenue
+- Earnings
+
+Do not repeat the table — just summarize insights.
+
+{summary}
+"""
+
+    try:
+        llm = ChatGroq(
+            api_key=os.getenv("GROQ_API_KEY"),
+            model_name="llama3-70b-8192",
+            temperature=0,
+        )
+        parser = StrOutputParser()
+        chain = llm | parser
+
+        print("[DEBUG] Sending prompt to LLM...")
+        result = chain.invoke(prompt)
+        print("[DEBUG] LLM response received.")
+
+        if not result or not result.strip():
+            print("[DEBUG] LLM returned empty result.")
+            return "⚠️ LLM returned no insight."
+        
+        print("[DEBUG] LLM Output Preview:\n", repr(result))
+        return result.strip()
+
+    except Exception as e:
+        print(f"[ERROR] LLM generation failed: {e}")
+        return f"⚠️ Error generating insight: {e}"
+

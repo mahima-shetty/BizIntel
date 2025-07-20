@@ -44,7 +44,7 @@ def company_deep_dive(ticker: str) -> str:
 
     # Final output
     final_report = f"""
-## 🔍 Company Deep Dive: {ticker}
+🔍 Company Deep Dive: {ticker}
 
 {snapshot_str}
 

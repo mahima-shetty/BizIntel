@@ -122,7 +122,7 @@ def summarize_10k_text(raw_text: str) -> str:
     cleaned_text = "\n".join(cleaned_lines)
 
     # 🔪 Step 2: Chunk for LLM
-    chunks = split_into_chunks(cleaned_text, chunk_size=9000, overlap=500)[:20]
+    chunks = split_into_chunks(cleaned_text, chunk_size=9000, overlap=500)[10:20]
     
 
 

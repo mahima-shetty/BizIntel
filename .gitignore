@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 
 sec-edgar-filings/
+debug_outputs/
 # C extensions
 *.so
 

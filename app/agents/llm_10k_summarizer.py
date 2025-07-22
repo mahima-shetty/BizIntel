@@ -11,6 +11,8 @@ import time
 import streamlit as st
 from dotenv import load_dotenv
 load_dotenv(override=True)
+import os
+from datetime import datetime
 
 
 # 🔗 Load LLaMA 3 model from Groq
@@ -120,7 +122,22 @@ def summarize_10k_text(raw_text: str) -> str:
         cleaned_lines.append(line)
 
     cleaned_text = "\n".join(cleaned_lines)
+    # Save cleaned EDGAR 10-K text for inspection
+    # Create folder if not exists
+    os.makedirs("debug_outputs", exist_ok=True)
 
+    # Generate timestamped filename
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"10k_cleaned_{timestamp}.txt"
+    output_path = os.path.join("debug_outputs", filename)
+
+    
+    # Save to file
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(cleaned_text)
+
+    print(f"[DEBUG] 📝 Cleaned 10-K text exported to: {output_path}")
+    
     # 🔪 Step 2: Chunk for LLM
     chunks = split_into_chunks(cleaned_text, chunk_size=9000, overlap=500)[10:20]
     

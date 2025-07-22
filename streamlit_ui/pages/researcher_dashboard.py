@@ -32,6 +32,7 @@ def load_user_preferences(email):
     if not prefs:
         prefs = {"ticker": "AAPL", "depth": "standard"}
         st.warning("⚠️ No researcher preferences found. Using defaults.")
+    st.session_state["depth"] = prefs.get("depth", "standard")  # ← add this
     return prefs
 
 
@@ -52,16 +53,24 @@ def show_company_deep_dive_section(prefs):
     if st.session_state.get("deep_dive_result") and st.session_state.get("deep_dive_ticker") == ticker:
         st.markdown(
             f"""
-                    <div style='padding:1em; border-radius:8px; background-color:#000000; border:1px solid #ddd;'>
-                    {st.session_state["deep_dive_result"]}
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-            )
+            <div style='padding:1em; border-radius:8px; background-color:#000000; border:1px solid #ddd;'>
+            {st.session_state["deep_dive_result"]}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
         st.markdown("---")
+
+        # ✅ Show peer comparison always
         show_peer_comparison_section(ticker)
-        st.markdown("---")
-        show_industry_benchmark_section(ticker)
+
+        # 🔍 Only show industry benchmarks for deep analysis
+        if st.session_state.get("depth") == "deep":
+            st.markdown("---")
+            show_industry_benchmark_section(ticker)
+
+
+        
 
 # ─────────────────────────────────────────────
 def show_peer_comparison_section(ticker: str):

@@ -48,7 +48,6 @@ def show_company_deep_dive_section(prefs):
             result = company_deep_dive(ticker)
             st.session_state["deep_dive_result"] = result
             st.session_state["deep_dive_ticker"] = ticker
-            st.success("✅ Done! Business model and strategy ready.")
 
     if st.session_state.get("deep_dive_result") and st.session_state.get("deep_dive_ticker") == ticker:
         st.markdown(

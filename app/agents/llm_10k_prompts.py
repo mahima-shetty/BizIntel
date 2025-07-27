@@ -1,32 +1,29 @@
-# app/agents/llm_10k_prompts.py
-
 from langchain.prompts import PromptTemplate
 
-# 🔍 Per-chunk analysis: extract business model & strategy points
+# 🔍 Per-chunk analysis prompt: business model + strategy insights
 chunk_analysis_prompt = PromptTemplate.from_template("""
-You are a financial analyst reading a portion of a company's 10-K filing.
+You are a financial analyst reviewing a portion of a company's 10-K filing.
 
-Carefully extract key insights about:
-- What the company does (business model)
-- How it plans to grow or compete (strategic priorities)
+From the text below, extract any **concrete insights** about:
+- What the company does (its business model)
+- How it plans to grow or stay competitive (its strategy)
 
-If the chunk is incomplete, summarize only what’s visible. Focus on clarity, not filler.
+📌 If the text is incomplete or repetitive, summarize only the useful parts.
+📌 Avoid copying tables, financial line items, or legal boilerplate.
 
 ---
 {text}
 """)
 
-# 🧠 Final summary: clean, layman-friendly bullets
+# 🧠 Final summary prompt: layman-friendly bullets
 refinement_prompt = PromptTemplate.from_template("""
-You are an assistant summarizing draft notes from a company's 10-K filing.
+You are a professional summarizer creating a **simple and clear** overview of a company based on internal research notes.
 
-Based on the content below, write a clear and simple explanation of:
-- The company's core business
-- Its strategy or future direction
+Write a brief bullet-point summary covering:
+- ✅ What the company does
+- ✅ What its main strategic goals or directions are
 
-✅ Write in bullet points
-✅ Use plain English (avoid financial jargon)
-✅ Keep it informative, not fluffy
+Use plain English, avoid buzzwords or filler, and focus on clarity. Even a high schooler should understand it.
 
 ---
 {notes}

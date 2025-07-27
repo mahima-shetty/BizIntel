@@ -1,193 +1,117 @@
-# llm_10k_summarizer.py
-
 import os
+import re
+import time
+import nltk
+import streamlit as st
+import concurrent.futures
+from datetime import datetime
 from bs4 import BeautifulSoup
+from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from app.agents.llm_10k_prompts import chunk_analysis_prompt, refinement_prompt
-import concurrent
-import time
-import streamlit as st
-from dotenv import load_dotenv
+
 load_dotenv(override=True)
-import os
-from datetime import datetime
+nltk.download("punkt")
+from nltk.tokenize import sent_tokenize
 
-
-# 🔗 Load LLaMA 3 model from Groq
+# Load LLaMA 3 model
 llm = ChatGroq(
     api_key=os.getenv("GROQ_API_KEY"),
     model_name="llama3-70b-8192",
     temperature=0
 )
-
 parser = StrOutputParser()
 
 def clean_html_10k(filepath: str) -> str:
-    """
-    Loads and strips unwanted tags from a 10-K HTML file.
-    Returns plain readable text.
-    """
     with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
         html = f.read()
-
     soup = BeautifulSoup(html, "html.parser")
     for tag in soup(["script", "style", "table", "td", "th"]):
         tag.decompose()
-
     return soup.get_text(separator="\n")
 
 
-def split_into_chunks(text: str, chunk_size: int = 9000, overlap: int = 500):
+def split_by_sentences(text: str, sentences_per_chunk: int = 40):
+    sentences = sent_tokenize(text)
     chunks = []
-    start = 0
-    while start < len(text):
-        end = min(len(text), start + chunk_size)
-        chunk = text[start:end]
-
-        # Cut at last period to avoid mid-sentence cuts
-        last_period = chunk.rfind(".")
-        if last_period != -1 and last_period > 2000:
-            chunk = chunk[:last_period + 1]
-
+    for i in range(0, len(sentences), sentences_per_chunk - 5):  # overlap 5
+        chunk = " ".join(sentences[i:i + sentences_per_chunk])
         chunks.append(chunk.strip())
-        start += chunk_size - overlap
     return chunks
 
-
-# # 📄 Prompt for chunk-level summarization
-# chunk_analysis_prompt = PromptTemplate.from_template("""
-# You're a financial analyst reviewing a portion of a 10-K filing.
-
-# Your task:
-# - Identify what the company does (its business model)
-# - Highlight strategic priorities or growth goals
-
-# If the content appears incomplete, summarize what is available.
-
-# ---
-# {text}
-# """)
-
-
-# # 🧾 Final prompt to polish and simplify combined notes
-# refinement_prompt = PromptTemplate.from_template("""
-# Here are rough draft notes extracted from a company's 10-K filing.
-
-# Write a clean, layman-friendly summary that covers:
-# - What the company does (its business model)
-# - What strategies or goals it's pursuing
-
-# Return your output in clear, point-wise bullet format.
-
-# ---
-# {notes}
-# """)
-import time
 
 def process_chunk(chunk, idx, total):
     print(f"🧠 Processing chunk {idx+1}/{total}...")
     try:
         chain = chunk_analysis_prompt | llm | parser
         result = chain.invoke({"text": chunk})
-        time.sleep(100)  # ← pause 5 seconds between requests
+        time.sleep(5)  # throttle to avoid Groq rate limits
+        # Debug dump
+        with open(f"debug_outputs/chunk_summary_{idx:02d}.txt", "w", encoding="utf-8") as f:
+            f.write("INPUT CHUNK:\n" + chunk)
+            f.write("\n\nLLM OUTPUT:\n" + result)
         return result
     except Exception as e:
-        print(f"[ERROR] Chunk failed: {e}")
+        print(f"[ERROR] Chunk {idx+1} failed: {e}")
         return None
 
 
-
-
 def summarize_10k_text(raw_text: str) -> str:
-    """
-    Cleans and chunks a full 10-K filing, extracts business strategy insights using LLM.
-    Returns a readable plain-English bullet point summary.
-    """
-    # ⛏️ Step 1: Clean garbage lines (short, digits, TOC noise)
+    # Clean & filter
     lines = raw_text.splitlines()
     cleaned_lines = []
     for line in lines:
         line = line.strip()
-
-        if not line or len(line) < 30 or line.isdigit():
+        if (
+            not line
+            or line.isdigit()
+            or re.match(r"^[\d\s\.\$,()%]+$", line)
+            or re.fullmatch(r"\d{4}-\d{2}-\d{2}", line)
+            or re.search(r"^country:", line.lower())
+            or any(kw in line.lower() for kw in ["unaudited", "table of contents", "page ", "item ", "see note"])
+        ):
             continue
-
-        if any(kw in line.lower() for kw in [
-            "table of contents", "see note", "unaudited", "amount", "year ended", "page ", "item "
-        ]):
-            continue
-
         cleaned_lines.append(line)
 
     cleaned_text = "\n".join(cleaned_lines)
-    # Save cleaned EDGAR 10-K text for inspection
-    # Create folder if not exists
     os.makedirs("debug_outputs", exist_ok=True)
-
-    # Generate timestamped filename
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"10k_cleaned_{timestamp}.txt"
-    output_path = os.path.join("debug_outputs", filename)
-
-    
-    # Save to file
-    with open(output_path, "w", encoding="utf-8") as f:
+    cleaned_path = f"debug_outputs/10k_cleaned_{timestamp}.txt"
+    with open(cleaned_path, "w", encoding="utf-8") as f:
         f.write(cleaned_text)
+    print(f"[DEBUG] 🧹 Cleaned 10-K text saved to: {cleaned_path}")
 
-    print(f"[DEBUG] 📝 Cleaned 10-K text exported to: {output_path}")
-    
-    # 🔪 Step 2: Chunk for LLM
-    chunks = split_into_chunks(cleaned_text, chunk_size=9000, overlap=500)[10:20]
-    
-
-
-    # Optional: Limit to top N chunks if needed (e.g. for speed during dev)
-    # chunks = chunks[:25]  # Uncomment for limiting during testing
-
-    print(f"[INFO] 🔹 Total usable chunks: {len(chunks)}")
+    # Chunking
+    MAX_CHUNKS = 10
+    chunks = split_by_sentences(cleaned_text, 40)[:MAX_CHUNKS]
+    print(f"[INFO] 🧩 Processing {len(chunks)} chunks")
 
     summaries = []
-
-    # 🤖 Step 3: Extract partial insights
-    # for idx, chunk in enumerate(chunks):
-    #     print(f"🧠 Processing chunk {idx + 1}/{len(chunks)}...")
-    #     try:
-    #         chain = chunk_analysis_prompt | llm | parser
-    #         result = chain.invoke({"text": chunk})
-    #         summaries.append(result.strip())
-    #     except Exception as e:
-    #         print(f"[ERROR] Failed on chunk {idx + 1}: {e}")
-    #         continue
-
-    # if not summaries:
-    #     return "⚠️ No meaningful content extracted from the 10-K."
-    
-    
-    summaries = []
-    
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
         futures = [executor.submit(process_chunk, chunk, idx, len(chunks)) for idx, chunk in enumerate(chunks)]
         for future in concurrent.futures.as_completed(futures):
             try:
                 summaries.append(future.result())
             except Exception as e:
-                print(f"[ERROR] Chunk failed: {e}")
-                continue
+                print(f"[ERROR] Chunk processing failed: {e}")
+
     if not summaries:
         return "⚠️ No meaningful content extracted from the 10-K."
 
+    # Combine summaries
     combined_notes = "\n\n".join(summaries)
-    combined_notes = combined_notes[:22000]
-    
-    
-    # 🧠 Step 4: Refine to final summary
-    final_chain = refinement_prompt | llm | parser
+    combined_summary_path = f"debug_outputs/10k_COMBINED_SUMMARY_{timestamp}.txt"
+    with open(combined_summary_path, "w", encoding="utf-8") as f:
+        f.write(combined_notes)
+    print(f"[DEBUG] 📝 Combined summary saved to: {combined_summary_path}")
+
+    # Final refinement
     try:
-        final_summary = final_chain.invoke({"notes": combined_notes})
+        final_chain = refinement_prompt | llm | parser
+        final_summary = final_chain.invoke({"notes": combined_notes[:22000]})
         return final_summary.strip()
     except Exception as e:
         print(f"[ERROR] Final summarization failed: {e}")
         return "⚠️ Unable to generate summary from extracted notes."
-

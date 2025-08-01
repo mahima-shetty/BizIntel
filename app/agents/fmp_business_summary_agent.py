@@ -136,7 +136,7 @@ Format your answer in 2 sections:
         """.strip()
 
         result = llm.invoke(prompt)  # Use your preferred LLM chain
-        return result.strip()
+        return result.content.strip()
     except Exception as e:
         print(f"[ERROR] LLM overview summary failed: {e}")
         return "⚠️ Unable to generate company overview."

@@ -2,75 +2,133 @@
 
 import os
 from langchain.prompts import PromptTemplate
-from langchain_groq import ChatGroq
-from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnableSequence
+from langchain_groq import ChatGroq
 from dotenv import load_dotenv
 
-load_dotenv(override=True)
+load_dotenv()
 
-# 🔒 Deterministic LLM
-llm = ChatGroq(
-    api_key=os.getenv("GROQ_API_KEY"),
-    model_name="llama3-70b-8192",
-    temperature=0
+llm = ChatGroq(api_key=os.getenv("GROQ_API_KEY"), model_name="llama3-70b-8192")
+
+# For raw 10-K text
+overview_prompt = PromptTemplate.from_template(
+    """You are a financial analyst creating a concise, investor-friendly company summary based on SEC 10-K data.
+
+### Filing Text:
+{text}
+
+---
+
+### Output Format:
+**Summary:** <one-paragraph overview>
+
+**SWOT Analysis:**
+- **Strengths:** ...
+- **Weaknesses:** ...
+- **Opportunities:** ...
+- **Threats:** ...
+"""
 )
-print("[DEBUG] Using Groq Key:", os.getenv("GROQ_API_KEY")[:6] + "****")
 
+def summarize_company_overview(edgar_text: str) -> dict:
+    """
+    Called from deep_dive_agent.py — uses raw 10-K text.
+    """
+    chain = RunnableSequence([overview_prompt, llm])
+    result = chain.invoke({"text": edgar_text})
+    return {
+        "summary": result.content.strip(),
+        "source": "EDGAR"
+    }
 
-# ✅ Updated to accept a merged section
-# company_summary_prompt = PromptTemplate(
-#     input_variables=["ticker", "business_strategy"],
-#     template="""
-# You are a financial analyst assistant.
+# For cleaned dict input
+rag_format_prompt = PromptTemplate.from_template(
+    """Format the following company insights into a clear investor summary with SWOT analysis.
 
-# Here's information from the company's 10-K filing:
+### Business Model:
+{business_model}
 
-# 📌 Ticker: {ticker}
+### Strategy:
+{strategy}
 
-# 🏢 Business Overview & Strategy:
-# {business_strategy}
+### SWOT:
+{swot_analysis}
 
-# Write a clear, professional 5-sentence summary explaining:
-# - The company's core business
-# - Strategic priorities
-# - Any recent changes or positioning insights
-# Avoid fluff or speculation beyond this data.
-# """
-# )
-company_summary_prompt = PromptTemplate(
-    input_variables=["ticker", "business_strategy"],
-    template="""
-You are an assistant that explains business strategy in simple terms.
+---
 
-Here's the company's official 10-K filing content:
+### Output Format:
+**Summary:** <one-paragraph overview>
 
-📌 Ticker: {ticker}
-
-🏢 Business Overview & Strategy:
-{business_strategy}
-
-Write a simple, clear explanation of what this company does and how it plans to grow — for someone without a finance background.
-
-Format your output as:
-- A plain English summary anyone can understand
-- 4 to 6 bullet points
-- Avoid financial jargon or long sentences
-- Focus on what the company sells, how it works, and what its priorities are
 """
 )
 
 
-chain: RunnableSequence = company_summary_prompt | llm | StrOutputParser()
+# **SWOT Analysis:**
+# - **Strengths:** ...
+# - **Weaknesses:** ...
+# - **Opportunities:** ...
+# - **Threats:** ...
+
+def summarize_company_from_edgar(ticker: str, summary_data: dict) -> str:
+    """
+    Called from get_business_model_and_strategy() after RAG.
+    """
+    try:
+        chain = rag_format_prompt | llm
+        result = chain.invoke(summary_data)
+        return result.content.strip()
+    except Exception as e:
+        print(f"[LLM FORMAT ERROR - {ticker}] {e}")
+        return "⚠️ LLM formatting failed."
 
 
-def summarize_company_from_edgar(ticker: str, edgar_data: dict) -> str:
-    content = edgar_data.get("business_strategy", "").strip()
 
-    if not content or len(content) < 300:  # less than ~50 words = junk
-        return "⚠️ Not enough EDGAR data to generate a meaningful summary."
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import Runnable
+from langchain_groq import ChatGroq
 
-    return chain.invoke({
-        "ticker": ticker,
-        "business_strategy": content
-    }).strip()
+def summarize_company_from_yfinance(business_model: str, strategy: str, ticker: str) -> str:
+    """
+    Generates a concise company summary using Groq-hosted LLaMA3 based on the business model and strategy.
+    Returns a 3–5 sentence summary.
+    """
+    try:
+        if not business_model or len(business_model.strip()) < 20:
+            raise ValueError("Business model text is too short or missing.")
+
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", "You are a business analyst."),
+            ("user", 
+             """Based on the company’s business model and strategy, generate a concise company summary.
+Focus on what the company does, how it generates revenue, and any notable strategic priorities.
+
+Business Model:
+{business_model}
+
+Strategy:
+{strategy}
+
+Output a short, 3–5 sentence company overview.""")
+        ])
+
+        llm = ChatGroq(
+            model_name="llama3-8b-8192",
+            temperature=0.3,
+            max_tokens=1000,
+        )
+
+        chain: Runnable = prompt | llm
+        response = chain.invoke({
+            "business_model": business_model,
+            "strategy": strategy or ""
+        })
+
+        summary = response.content.strip()
+        if not summary:
+            raise ValueError("LLM returned empty summary.")
+
+        return summary
+
+    except Exception as e:
+        print(f"[❌] Failed to generate summary for {ticker}: {e}")
+        return "Summary generation failed."

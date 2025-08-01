@@ -56,3 +56,29 @@ def generate_swot_analysis(ticker: str, context: dict) -> str:
     except Exception as e:
         print(f"[SWOT ERROR] Failed for {ticker}: {e}")
         return "⚠️ Failed to generate SWOT analysis."
+    
+    
+
+def generate_swot_analysis_from_summary(summary: str, ticker: str) -> str:
+    """
+    Generate SWOT analysis using the company summary.
+    """
+    prompt = f"""
+You are a market research analyst.
+
+Based on the following summary of {ticker}'s business and strategy, write a detailed SWOT analysis:
+    
+Summary:
+\"\"\"
+{summary}
+\"\"\"
+
+Return only the SWOT analysis with clear sections for Strengths, Weaknesses, Opportunities, and Threats.
+"""
+
+    try:
+        response = llm.invoke(prompt)  # Not llm(prompt)
+        return response.content.strip()
+    except Exception as e:
+        print(f"[SWOT ERROR] {e}")
+        return "SWOT generation failed."

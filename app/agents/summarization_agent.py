@@ -31,3 +31,4 @@ def summarize_articles(articles):
     "Start with the line: '📝 Here's your summary for easy reading:'")
     
     return str(response)
+

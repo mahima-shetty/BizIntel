@@ -50,15 +50,33 @@ def show_company_deep_dive_section(prefs):
             st.session_state["deep_dive_ticker"] = ticker
 
     if st.session_state.get("deep_dive_result") and st.session_state.get("deep_dive_ticker") == ticker:
+        result = st.session_state["deep_dive_result"]
+        business_model = result.get("business_model", "")
+        strategy = result.get("strategy","")
+        summary = result.get("summary", "")
+        swot = result.get("swot", "")
+        source = result.get("source", "")
+
         st.markdown(
             f"""
             <div style='padding:1em; border-radius:8px; background-color:#000000; border:1px solid #ddd;'>
-            {st.session_state["deep_dive_result"]}
-            </div>
+                <h4 style='color:white;'>📈 Business Model ({source})</h4>
+                <p style='color:white;'>{business_model}</p>
+                <hr style='border: 1px solid #555;'/>
+                <h4 style='color:white;'>🎯 Strategy ({source})</h4>
+                <p style='color:white;'>{strategy}</p>
+                <hr style='border: 1px solid #555;'/>
+                <h4 style='color:white;'>🧠 Summary ({source})</h4>
+                <p style='color:white;'>{summary}</p>
+                <h4 style='color:white;'>🌟 SWOT ({source})</h4>
+                <p style='color:white;'>{swot}</p>
+                <hr style='border: 1px solid #555;'/></div>
+                
+            
             """,
             unsafe_allow_html=True
         )
-        st.markdown("---")
+
 
         # ✅ Show peer comparison always
         show_peer_comparison_section(ticker)
@@ -149,9 +167,8 @@ def show_peer_comparison_section(ticker: str):
             if insight_text:
                 st.markdown(
                     f"""
-                    <div style='padding:1em; border-radius:8px; background-color:#000000; border:1px solid #ddd;'>
-                    {insight_text}
-                    </div>
+                    <div style='padding:1em; border-radius:8px; background-color:#000000; border:1px solid #ddd;'>{insight_text}</div>
+                    
                     """,
                     unsafe_allow_html=True
                 )

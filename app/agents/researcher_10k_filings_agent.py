@@ -1,15 +1,16 @@
 import requests
 from trafilatura import fetch_url, extract
 import os
-# from bizintel.utils.sec_utils import get_cik_for_ticker  # Adjust this import based on your structure
+import faiss
+import numpy as np
+from typing import List
+from sentence_transformers import SentenceTransformer
 
 SEC_HEADERS = {
     "User-Agent": "BizIntel Research Bot (msshetty237@gmail.com)",
     "Accept-Encoding": "gzip, deflate",
     "Connection": "keep-alive"
 }
-
-
 
 
 def get_cik_for_ticker(ticker: str) -> str:
@@ -33,13 +34,11 @@ def get_cik_for_ticker(ticker: str) -> str:
 
 def scrape_10k_with_trafilatura(ticker: str) -> str:
     try:
-        # Step 1: Get CIK
         cik = get_cik_for_ticker(ticker)
         cik_padded = str(cik).zfill(10)
-        cik_no_zeros = str(int(cik))  # remove leading zeros
+        cik_no_zeros = str(int(cik))
         print(f"[INFO] ✅ CIK for {ticker}: {cik} -> {cik_padded}")
 
-        # Step 2: Get recent filings
         submissions_url = f"https://data.sec.gov/submissions/CIK{cik_padded}.json"
         res = requests.get(submissions_url, headers=SEC_HEADERS)
         res.raise_for_status()
@@ -50,7 +49,6 @@ def scrape_10k_with_trafilatura(ticker: str) -> str:
         form_types = filings.get("form", [])
         primary_docs = filings.get("primaryDocument", [])
 
-        # Find latest 10-K
         acc_no_clean = None
         primary_doc = None
         for form, acc, doc in zip(form_types, accession_numbers, primary_docs):
@@ -62,7 +60,6 @@ def scrape_10k_with_trafilatura(ticker: str) -> str:
         if not acc_no_clean or not primary_doc:
             raise Exception("❌ No recent 10-K filing found.")
 
-        # Optional: Try fetching index.json to confirm .htm
         index_url = f"https://www.sec.gov/Archives/edgar/data/{cik_no_zeros}/{acc_no_clean}/index.json"
         index_res = requests.get(index_url, headers=SEC_HEADERS)
         if index_res.status_code == 200:
@@ -81,23 +78,18 @@ def scrape_10k_with_trafilatura(ticker: str) -> str:
         doc_url = f"https://www.sec.gov/Archives/edgar/data/{cik_no_zeros}/{acc_no_clean}/{primary_doc}"
         print(f"[INFO] 🔗 Final URL: {doc_url}")
 
-        # Step 3: Fetch HTML manually with headers
         html_response = requests.get(doc_url, headers=SEC_HEADERS)
         html_response.raise_for_status()
         html_text = html_response.text
 
-        # Step 4: Extract clean text using trafilatura
         extracted = extract(html_text, include_comments=False, include_tables=False)
         if not extracted or len(extracted) < 1000:
             raise Exception("❌ Extracted content too short or empty.")
 
         print(f"[INFO] ✅ Extracted length: {len(extracted)} chars")
-            # Save to debug file under /tests/debug_outputs/
 
-
-        debug_dir = "tests/debug_outputs"
+        debug_dir = "debug_outputs"
         os.makedirs(debug_dir, exist_ok=True)
-
         debug_path = os.path.join(debug_dir, f"{ticker.upper()}_10k_trafilatura.txt")
         with open(debug_path, "w", encoding="utf-8") as f:
             f.write(extracted)
@@ -110,11 +102,31 @@ def scrape_10k_with_trafilatura(ticker: str) -> str:
         raise
 
 
+# 🧠 EMBEDDED UTIL #1: get_llm_summary_from_chunks (placeholder version)
+def get_llm_summary_from_chunks(chunks: List[str], query: str) -> str:
+    print("[LLM] 🤖 Simulating summary from RAG chunks...")
+    joined = " ".join(chunks[:3])
+    return f"🔍 Summary for query: '{query}'\n\n{joined[:1500]}..."
+
+
+# 📊 EMBEDDED UTIL #2: load_vectorstore_from_text_file (basic FAISS impl)
+def load_vectorstore_from_text_file(path: str):
+    print(f"[FAISS] 🔍 Loading vectorstore from: {path}")
+    with open(path, "r", encoding="utf-8") as f:
+        text = f.read()
+
+    model = SentenceTransformer("all-MiniLM-L6-v2")
+    paragraphs = [p for p in text.split("\n\n") if len(p) > 100]
+    embeddings = model.encode(paragraphs)
+    index = faiss.IndexFlatL2(embeddings.shape[1])
+    index.add(np.array(embeddings))
+    return index, paragraphs, model
+
 
 # ✅ Run directly for testing
 if __name__ == "__main__":
     ticker = "BRK-A"  # Change ticker for testing
     text = scrape_10k_with_trafilatura(ticker)
     print("\n--- START OF EXTRACTED TEXT ---\n")
-    print(text[:3000])  # Print only first 3000 chars
+    print(text[:3000])
     print("\n--- END OF EXTRACTED TEXT ---\n")

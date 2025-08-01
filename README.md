@@ -92,8 +92,9 @@ flowchart TD
     K --> L[🔁 st.rerun]
 
 
-
+```
 ```mermaid
+
 graph TD
     A[🔐 Login] --> B{🔍 Role?}
     B -->|Analyst| C[📊 Analyst Dashboard]
@@ -124,6 +125,7 @@ graph TD
 
 ```
 ```mermaid
+
 graph TD
     A[🔐 Login] --> B{🔍 Role?}
     B -->|Researcher| C[🔬 Researcher Dashboard]

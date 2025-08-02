@@ -9,6 +9,8 @@ from langchain.chains import RetrievalQA
 from langchain_core.language_models import BaseLanguageModel  # Optional for type hinting
 import pickle
 from dotenv import load_dotenv
+from datetime import datetime
+
 import json5, json
 import regex as re
 
@@ -105,7 +107,7 @@ def get_llm_summary_from_chunks(vectorstore: FAISS, question: str, llm) -> Dict[
     Falls back to raw text if JSON parsing fails.
     """
     try:
-        retriever = vectorstore.as_retriever(search_kwargs={"k": 6})
+        retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
         qa_chain = RetrievalQA.from_chain_type(
             llm=llm,
             chain_type="stuff",
@@ -118,6 +120,7 @@ def get_llm_summary_from_chunks(vectorstore: FAISS, question: str, llm) -> Dict[
         # DEBUG logs
         print("[DEBUG] type of response:", type(response))
         print("[DEBUG] response:", response)
+        
 
         # Extract raw result
         if isinstance(response, dict) and "result" in response:
@@ -127,6 +130,16 @@ def get_llm_summary_from_chunks(vectorstore: FAISS, question: str, llm) -> Dict[
         else:
             raw = str(response)
 
+
+
+         # ✅ Save raw output to debug file
+        os.makedirs("debug_outputs", exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"debug_outputs/llm_rag_output_{timestamp}.txt"
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write(f"Query:\n{question}\n\nResponse:\n{raw}")
+        print(f"[INFO] ✅ RAG llm response saved at {filename}")   
+            
         # ✅ Clean markdown wrappers and try JSON parse
         raw_cleaned = clean_json_like_output(raw)
         return extract_json_from_response(raw_cleaned)
@@ -143,12 +156,36 @@ def get_business_strategy_from_rag(ticker: str, raw_text: str) -> Dict[str, str]
         vectorstore = load_vectorstore_from_text_file(ticker, raw_text)
 
         question = (
-            "Provide a structured JSON output containing the following fields:\n"
-            "1. business_model: What you think company’s business model would be, in 3 sentences.\n"
-            "2. strategy: What you think company’s corporate or competitive strategy would be, in 3 sentences.\n"
-            "3. swot: What you think company's SWOT analysis would be with four keys - strengths, weaknesses, opportunities, threats - each as a list of bullet points.\n\n"
-            "Format your answer strictly as JSON."
+        "Provide a structured JSON output containing the following fields:\n"
+        "1. business_model: What you think the company’s business model would be, in 3 sentences.\n"
+        "2. strategy: What you think the company’s corporate or competitive strategy would be, in 3 sentences.\n"
+        "3. swot: A dictionary with four keys - strengths, weaknesses, opportunities, threats - each containing a list of bullet points.\n\n"
+        "Respond strictly in valid JSON format. Do not include any explanation or markdown.\n\n"
+        "Example format:\n"
+        "{\n"
+        "  \"business_model\": \"The company operates on a direct-to-consumer subscription model...\",\n"
+        "  \"strategy\": \"The company is focused on expanding into international markets...\",\n"
+        "  \"swot\": {\n"
+        "    \"strengths\": [\n"
+        "      \"Strong brand loyalty\",\n"
+        "      \"Innovative product pipeline\"\n"
+        "    ],\n"
+        "    \"weaknesses\": [\n"
+        "      \"High customer acquisition cost\",\n"
+        "      \"Limited supply chain flexibility\"\n"
+        "    ],\n"
+        "    \"opportunities\": [\n"
+        "      \"Expansion into emerging markets\",\n"
+        "      \"Partnerships with local distributors\"\n"
+        "    ],\n"
+        "    \"threats\": [\n"
+        "      \"Regulatory changes in international markets\",\n"
+        "      \"Intensifying competition from local brands\"\n"
+        "    ]\n"
+        "  }\n"
+        "}"
         )
+
 
         result = get_llm_summary_from_chunks(vectorstore, question, llm)
 

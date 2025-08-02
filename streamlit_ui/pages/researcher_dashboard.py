@@ -54,7 +54,7 @@ def show_company_deep_dive_section(prefs):
         business_model = result.get("business_model", "")
         strategy = result.get("strategy","")
         summary = result.get("summary", "")
-        swot = result.get("swot", "")
+        # swot = result.get("swot", "")
         source = result.get("source", "")
 
         st.markdown(
@@ -68,8 +68,6 @@ def show_company_deep_dive_section(prefs):
                 <hr style='border: 1px solid #555;'/>
                 <h4 style='color:white;'>🧠 Summary ({source})</h4>
                 <p style='color:white;'>{summary}</p>
-                <h4 style='color:white;'>🌟 SWOT ({source})</h4>
-                <p style='color:white;'>{swot}</p>
                 <hr style='border: 1px solid #555;'/></div>
                 
             

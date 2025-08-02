@@ -22,7 +22,7 @@ token = st.session_state.get("token")
 #     st.stop()
 
 user_data = get_current_user_data(token)
-st.markdown(user_data)
+# st.markdown(user_data)
 
 
 role = user_data.get("role", "guest").lower()
@@ -43,7 +43,7 @@ try:
     conn.close()
     current_role = row[0] if row else "Analyst"
     st.session_state["user_role"] = current_role  # ✅ from DB
-    st.markdown(f"1st call from db role: {current_role}") #should be removed
+    # st.markdown(f"1st call from db role: {current_role}") #should be removed
 except Exception as e:
     st.warning(f"⚠️ Could not fetch role from DB: {e}")
     current_role = "Analyst"
@@ -80,7 +80,7 @@ if new_role != current_role:
 
             # Update session and rerun
             st.session_state["user_role"] = new_role
-            st.markdown(f"2nd call from db role: {new_role}") #should be removed
+            # st.markdown(f"2nd call from db role: {new_role}") #should be removed
 
             import requests
 

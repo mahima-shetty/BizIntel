@@ -13,7 +13,14 @@ from langchain_core.output_parsers import StrOutputParser
 from app.agents.llm_10k_prompts import chunk_analysis_prompt, refinement_prompt
 
 load_dotenv(override=True)
-nltk.download("punkt")
+import nltk
+
+# Check if 'punkt' is already downloaded
+try:
+    nltk.data.find("tokenizers/punkt")
+except LookupError:
+    nltk.download("punkt")
+    
 from nltk.tokenize import sent_tokenize
 
 # Load LLaMA 3 model

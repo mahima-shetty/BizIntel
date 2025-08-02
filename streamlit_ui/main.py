@@ -31,8 +31,8 @@ render_sidebar(role, prefs)
 # st.markdown(f"Hello **{user_data.get('username', 'user')}** 👋")
 # st.markdown("Use the sidebar to navigate your personalized dashboard.")
 
-# Step 4: Route to role-specific dashboard
-from pages.founder_dashboard import show_founder_dashboard
+# # Step 4: Route to role-specific dashboard
+# from pages.founder_dashboard import show_founder_dashboard
 # You can import others later: analyst, researcher
 
 st.info(f"Role (raw): {user_data.get('role')}")
@@ -51,8 +51,8 @@ st.info(f"Role (normalized): {role}")
 
 
 # ✅ Optional: Debug info (remove in production)
-st.caption("🔐 Debug Info:")
-st.json(user_data)
+# st.caption("🔐 Debug Info:")
+# st.json(user_data)
 
 
 if role == "startup founder":

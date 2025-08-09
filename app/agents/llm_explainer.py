@@ -1,6 +1,9 @@
 # app/agents/llm_explainer.py
 
 import os
+import pandas as pd
+import numpy as np
+from typing import Dict, List, TypedDict
 from llama_index.llms.langchain import LangChainLLM
 from langchain_groq import ChatGroq
 from langchain.prompts import PromptTemplate
@@ -40,6 +43,30 @@ def generate_trend_summary(ticker: str, df_alerts):
     prompt_text = trend_prompt.format(ticker=ticker, summary=alert_summary)
     response = wrapped_llm.complete(prompt_text)
     return response.text.strip()
+
+
+# def generate_trend_summary(ticker, data):
+#     # Ensure data is a DataFrame
+#     print(f"Print DATA", data)
+#     if isinstance(data, dict) and all(np.isscalar(v) for v in data.values()):
+#         data = pd.DataFrame([data])
+#     else:
+#         data = pd.DataFrame(data)
+
+#     if data.empty:
+#         return f"No trend data available for {ticker}."
+
+#     # Now df_alerts works
+#     df_alerts = data.copy()
+#     if "% Change" not in df_alerts.columns:
+#         df_alerts["% Change"] = df_alerts["Close"].pct_change() * 100
+
+#     alert_summary = df_alerts[["Date", "Close", "% Change"]].to_string(index=False)
+#     return f"Trend Summary for {ticker}:\n{alert_summary}"
+
+
+
+
 
 
 # ==========================

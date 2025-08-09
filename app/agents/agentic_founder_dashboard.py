@@ -1,4 +1,4 @@
-# app/agents/founder_dashboard_langgraph.py
+# app/agents/agentic_founder_dashboard.py
 from langgraph.graph import StateGraph, END
 from typing import TypedDict, List, Dict
 from app.agents.aggregator import aggregate_news

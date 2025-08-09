@@ -14,7 +14,7 @@ from app.agents.summarization_agent import summarize_articles
 from app.agents.insight_explorer import generate_insight_summary
 from streamlit_ui.utils.history import save_kpi_snapshot, save_news_article
 from streamlit_ui.utils.history import load_kpi_history, load_news_history
-
+from app.agents.agentic_analyst_dashboard import app
 
 # ─────────────────────────────────────────────
 # 🔧 Constants
@@ -37,6 +37,7 @@ def extract_main_text_and_link(raw_html):
     link = link_tag["href"] if link_tag and link_tag.has_attr("href") else None
     text = soup.get_text(strip=True)
     return text, link
+
 
 
 # ─────────────────────────────────────────────
@@ -122,6 +123,7 @@ def show_trend_detection_section(prefs):
 
             if st.button(f"🧠 Explain {ticker} trends", key=f"llm_{ticker}"):
                 with st.spinner("Analyzing trends..."):
+                    print("will call generate_trend_summary in ANalyzing trends...")
                     explanation = generate_trend_summary(ticker, alerts)
                     st.success(explanation)
 
@@ -303,8 +305,47 @@ def show_anomaly_section(kpi_history):
 
 
 
-# ─────────────────────────────────────────────
-# 🚀 Entry Point
+##  ─────────────────────────────────────────────
+## 🚀 Entry Point
+# def show_analyst_dashboard():
+#     st.title("🧠 Analyst Dashboard")
+
+#     user_email = st.session_state.get("user_email")
+#     if not user_email:
+#         st.error("⚠️ User not logged in.")
+#         st.stop()
+
+#     prefs = load_user_preferences(user_email)
+#     render_sidebar("analyst", prefs)
+
+#     show_kpi_tracking_section(prefs, user_email)
+    
+#     show_trend_detection_section(prefs)
+#     st.markdown("---")
+#     show_custom_data_builder_section(prefs, user_email)
+    
+#     st.markdown("---")
+#     show_insight_explorer_section(prefs,user_email)
+#     st.markdown("---")
+#     # ✅ FIX: Load KPI history here
+#     tickers = prefs.get("tickers", ["AAPL", "MSFT"])
+#     kpi_history = load_kpi_history(user_email, tickers, days=7)
+#     show_anomaly_section(kpi_history)
+    
+
+#     updated_prefs = show_analyst_preferences_form(prefs)
+#     if updated_prefs:
+#         save_analyst_prefs(user_email, updated_prefs)
+#         st.success("✅ Preferences saved. Refreshing...")
+#         st.rerun()
+
+
+
+
+##  ─────────────────────────────────────────────
+## 🚀 Entry Point
+
+        
 def show_analyst_dashboard():
     st.title("🧠 Analyst Dashboard")
 
@@ -313,30 +354,50 @@ def show_analyst_dashboard():
         st.error("⚠️ User not logged in.")
         st.stop()
 
+    # Load prefs
     prefs = load_user_preferences(user_email)
     render_sidebar("analyst", prefs)
 
-    show_kpi_tracking_section(prefs, user_email)
-    
-    show_trend_detection_section(prefs)
-    st.markdown("---")
-    show_custom_data_builder_section(prefs, user_email)
-    
-    st.markdown("---")
-    show_insight_explorer_section(prefs,user_email)
-    st.markdown("---")
-    # ✅ FIX: Load KPI history here
-    tickers = prefs.get("tickers", ["AAPL", "MSFT"])
-    kpi_history = load_kpi_history(user_email, tickers, days=7)
-    show_anomaly_section(kpi_history)
-    
+    # --- Run LangGraph flow ONCE ---
+    if "analyst_report" not in st.session_state:
+        with st.spinner("🤖 Running AI pipeline..."):
+            result = app.invoke({"user_email": user_email})
+            st.session_state.analyst_report = result.get("final_report", {})
 
+    # You can pass st.session_state.analyst_report into any section
+    
+    print("Analyst Report:", st.session_state.analyst_report)
+    report = st.session_state.analyst_report
+
+    # Independent section calls
+    show_kpi_tracking_section(prefs, user_email)
+    show_trend_detection_section(prefs)
+    show_custom_data_builder_section(prefs, user_email)
+    show_insight_explorer_section(prefs, user_email)
+
+    # KPI history for anomalies
+    kpi_history = load_kpi_history(user_email, prefs.get("tickers", ["AAPL", "MSFT"]), days=7)
+    show_anomaly_section(kpi_history)
+
+    # Download the readable report
+    st.markdown("### 📥 Download Full Report")
+          
+            
+    if st.button("📄 Download Report"):
+        report_json = json.dumps(report, indent=2, default=str)  
+        st.download_button(
+            label="Download Report",
+            data=report_json,
+            file_name="analyst_report.json",
+            mime="application/json"
+        )
+            
+    # Preferences update
     updated_prefs = show_analyst_preferences_form(prefs)
     if updated_prefs:
         save_analyst_prefs(user_email, updated_prefs)
         st.success("✅ Preferences saved. Refreshing...")
         st.rerun()
-
 
 
 if __name__ == "__main__" or __name__ == "__streamlit__":

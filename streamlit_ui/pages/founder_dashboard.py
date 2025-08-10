@@ -220,6 +220,19 @@ def show_founder_dashboard():
 
     # st.success("✅ Insights Ready!")
 
+    st.markdown("### 📥 Download Full Report")
+          
+    import json
+    if st.button("📄 Download Report"):
+        report_json = json.dumps(report, indent=2, default=str)  
+        st.download_button(
+            label="Download Report",
+            data=report_json,
+            file_name="analyst_report.json",
+            mime="application/json"
+        )
+    st.markdown("---")
+    
     # Preferences Update
     updated_prefs = show_preferences_form(prefs)
     if updated_prefs:

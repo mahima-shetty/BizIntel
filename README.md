@@ -25,7 +25,7 @@ Built with **LangChain**, **LlamaIndex**, **OpenAI**, **FastAPI**, and **Streaml
 | Summarization Engine   | Leverages OpenAI LLMs to produce concise, relevant market summaries         |
 | Visualization Module   | Interactive dashboards built with Streamlit                                 |
 | User Personalization   | Profiles, saved queries, and preferences for tailored insights               |
-| Agent Library          | Modular, extensible agent framework using LangChain and LlamaIndex           |
+| Agent Library          | Modular, extensible agent framework using LangGraph        |
 | API Layer              | FastAPI backend for agent orchestration and data access                      |
 | Authentication         | Secure user login and session management                                     |
 

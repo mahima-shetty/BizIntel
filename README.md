@@ -2,7 +2,7 @@
 
 **BizIntel** is an agentic AI platform that autonomously collects, summarizes, and visualizes market insights to support strategic business decision-making.
 
-Built with **LangChain**, **LlamaIndex**, **OpenAI**, **FastAPI**, and **Streamlit**, BizIntel delivers a personalized and extensible experience that makes market analysis faster, smarter, and more accessible.
+Built with **LangGraph**, **LangChain**, **LlamaIndex**, **OpenAI**, **FastAPI**, and **Streamlit**, BizIntel delivers a personalized and extensible experience that makes market analysis faster, smarter, and more accessible.
 
 ---
 
